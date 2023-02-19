@@ -10,7 +10,7 @@ export default function Profile() {
     const [uSources, setUSources] = useState([]);
     const [uAuthors, setUAuthors] = useState([]);
     const [mapCategories, setMapCategories] = useState();
-    const [selectedCategories, setSelectedCategories] = useState();
+    const [selectedCategories, setSelectedCategories] = useState(null);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -104,6 +104,8 @@ export default function Profile() {
             setIsLoading(false)
         })
     }
+
+    console.log(selectedCategories);
 
     if (!user) {
         return <>Loading...</>
