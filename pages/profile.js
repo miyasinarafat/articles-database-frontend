@@ -1,22 +1,32 @@
 import Head from 'next/head'
-import Link from 'next/link'
 import axios from "../lib/axios";
-import useAuth from "../lib/useAuth";
 import useSWR from "swr";
 import Select from "react-select";
-import {useState, useEffect} from "react";
+import {useState} from "react";
 import Button from "../components/button";
 
 export default function Profile() {
     const [uCategories, setUCategories] = useState([]);
     const [uSources, setUSources] = useState([]);
     const [uAuthors, setUAuthors] = useState([]);
+    const [mapCategories, setMapCategories] = useState();
+    const [selectedCategories, setSelectedCategories] = useState();
+    const [user, setUser] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const {user} = useAuth({middleware: 'auth'})
-
-    const {data: categories} = useSWR('/api/categories', () =>
+    useSWR('/api/categories', () =>
         axios.get('/api/categories')
-            .then(response => response.data.data),
+            .then( async (response) => {
+                const userResponse = await axios.get('/api/user');
+                const categories = response?.data?.data?.map(category => ({value: category.id, label: category.name}))
+                setMapCategories(categories)
+                setUser(userResponse.data)
+                const userSettings = userResponse.data?.settings
+                setUCategories(userSettings.categories || [])
+                setUSources(userSettings.sources || [])
+                setUAuthors(userSettings.authors || [])
+                setSelectedCategory(categories, userSettings.categories || [])
+            })
     )
 
     const {data: sources} = useSWR('/api/sources', () =>
@@ -29,20 +39,10 @@ export default function Profile() {
             .then(response => response.data.data),
     )
 
-    /** Categories setup */
-    let defaultCategories = [];
-    let mapCategories = [];
-    for (let i = 0; i < categories?.length; i++) {
-        let category = categories[i];
-        mapCategories.push({value: category.id, label: category.name})
-    }
-    for (let i = 0; i < user?.settings?.categories?.length; i++) {
-        let id = user.settings.categories[i];
-        let category = categories?.find(c => c.id === id);
-
-        if (category) {
-            defaultCategories.push({value: category.id, label: category.name})
-        }
+    const setSelectedCategory = (mapCategories, sCategories) => {
+        setSelectedCategories(
+            mapCategories?.filter(category => sCategories.includes(category.value))
+        )
     }
 
     /** Sources setup */
@@ -91,12 +91,18 @@ export default function Profile() {
 
     const submitForm = async (event) => {
         event?.preventDefault();
-
+        setIsLoading(true)
         await axios.put('/api/user/settings', {
             'categories': uCategories,
             'sources': uSources,
             'authors': uAuthors,
-        }).then(response => response.data.data)
+        }).then(response => {
+            console.log(response.data);
+            setIsLoading(false)
+        })
+        .catch( err => {
+            setIsLoading(false)
+        })
     }
 
     if (!user) {
@@ -123,13 +129,14 @@ export default function Profile() {
                         <label htmlFor="categories" className="block text-sm font-medium text-gray-700">
                             Select categories
                         </label>
-                        <Select
+                        { !!selectedCategories && <Select
                             id="categories"
                             className="t-1 block w-full rounded-md border-gray-300 py-2 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                             options={mapCategories}
-                            defaultValue={defaultCategories}
+                            defaultValue={selectedCategories}
                             onChange={handleUCategoriesChange}
                             isMulti/>
+                        }
                     </div>
                     <div className="w-1/2">
                         <label htmlFor="sources" className="block text-sm font-medium text-gray-700">
@@ -155,7 +162,7 @@ export default function Profile() {
                             onChange={handleUAuthorsChange}
                             isMulti/>
                     </div>
-                    <Button className="mt-3">Update</Button>
+                    <Button className={`mt-3 ${isLoading ? 'opacity-50' : ''}`} disabled={isLoading}>Update</Button>
                 </div>
             </form>
 
