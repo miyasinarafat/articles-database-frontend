@@ -10,9 +10,18 @@ export default function Home({ articles }) {
         setArticles(articles);
     }, [articles]);
 
-    const submitPagination = async () => {
-        const response = await axios.get('/api/feed', {params: {page: pageCount}})
+    const getFeedsByPage = async (page) => {
+        const response = await axios.get('/api/feed', {params: {page}})
         setArticles(response.data.data)
+    }
+    const nextPage = async () => {
+        await getFeedsByPage(pageCount + 1)
+        setPageCount(pageCount + 1)
+
+    }
+    const previousPage = async () => {
+        await getFeedsByPage(pageCount - 1)
+        setPageCount(pageCount - 1)
     }
 
     return (
@@ -28,14 +37,16 @@ export default function Home({ articles }) {
                     </div>
 
                     <div className="w-full pl-14">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-2">
                             <h1 className="text-2xl font-bold">{article.title}</h1>
                             <span className="block font-semibold">{article.publishedAt}</span>
                         </div>
                         <p className="leading-loose mb-5">
                             {article.content}
                         </p>
-                        <a target="_blank" href={article.sourceUrl} className="text-purple-600 font-bold">Visit source</a>
+                        <a target="_blank" href={article.sourceUrl}
+                           rel="noreferrer"
+                           className="text-purple-600 font-bold">Visit source</a>
                     </div>
                 </div>
             ))}
@@ -46,19 +57,14 @@ export default function Home({ articles }) {
             >
                 <div className="flex flex-1 justify-between sm:justify-end">
                     <button
-                        onClick={() => {
-                            setPageCount((prevState) => prevState - 1)
-                            submitPagination();
-                        }}
+                        onClick={() => previousPage()}
+                        disabled={pageCount <= 1}
                         className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                         Previous
                     </button>
                     <button
-                        onClick={() => {
-                            setPageCount((prevState) => prevState + 1)
-                            submitPagination();
-                        }}
+                        onClick={() => nextPage()}
                         className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                         Next

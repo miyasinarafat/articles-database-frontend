@@ -13,8 +13,8 @@ export default function Home() {
     const [query, setQuery] = useState('');
     const [uCategories, setUCategories] = useState([]);
     const [uSources, setUSources] = useState([]);
-    const [fromDate, setFromDate] = useState(null);
-    const [toDate, setToDate] = useState(null);
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
 
     const {data: categories} = useSWR('/api/categories', () =>
         axios.get('/api/categories')
@@ -52,11 +52,11 @@ export default function Home() {
         setUSources(Array.isArray(e) ? e.map((item) => item.value) : []);
     };
 
-    const submitSearch = async (event) => {
+    const submitSearch = async (page, event = null) => {
         event?.preventDefault();
 
         const response = await axios.get('/api/search', {params: {
-            page: pageCount,
+            page,
             query: query,
             filter: {
                 categories: uCategories,
@@ -68,13 +68,22 @@ export default function Home() {
         setArticles(response.data.data)
     }
 
+    const nextPage = async () => {
+        await submitSearch(pageCount + 1)
+        setPageCount(pageCount + 1)
+    }
+    const previousPage = async () => {
+        await submitSearch(pageCount - 1)
+        setPageCount(pageCount - 1)
+    }
+
     return (
         <>
             <Head>
                 <title>Search Articles</title>
             </Head>
 
-            <form onSubmit={submitSearch} autoComplete="off" className="mb-20">
+            <form onSubmit={event => submitSearch(pageCount, event)} autoComplete="off" className="mb-20">
                 <div>
                     <Label htmlFor="search" className="block text-sm font-medium text-gray-700">Search for articles</Label>
 
@@ -128,7 +137,6 @@ export default function Home() {
                             value={fromDate}
                             className="t-1 block w-full rounded-md border-gray-300 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                             onChange={event => setFromDate(event.target.value)}
-                            required
                             autoFocus
                             autoComplete="off"
                         />
@@ -144,7 +152,6 @@ export default function Home() {
                             value={toDate}
                             className="t-1 block w-full rounded-md border-gray-300 py-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                             onChange={event => setToDate(event.target.value)}
-                            required
                             autoFocus
                             autoComplete="off"
                         />
@@ -163,14 +170,15 @@ export default function Home() {
                     </div>
 
                     <div className="w-full pl-14">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-2">
                             <h1 className="text-2xl font-bold">{article.title}</h1>
                             <span className="block font-semibold">{article.publishedAt}</span>
                         </div>
                         <p className="leading-loose mb-5">
                             {article.content}
                         </p>
-                        <a target="_blank" href={article.sourceUrl} className="text-purple-600 font-bold">Visit source</a>
+                        <a target="_blank" rel="noreferrer"
+                           href={article.sourceUrl} className="text-purple-600 font-bold">Visit source</a>
                     </div>
                 </div>
             ))}
@@ -181,19 +189,14 @@ export default function Home() {
             >
                 <div className="flex flex-1 justify-between sm:justify-end">
                     <button
-                        onClick={() => {
-                            setPageCount((prevState) => prevState - 1)
-                            submitSearch();
-                        }}
+                        onClick={() => previousPage()}
+                        disabled={pageCount <= 1}
                         className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                         Previous
                     </button>
                     <button
-                        onClick={() => {
-                            setPageCount((prevState) => prevState + 1)
-                            submitSearch();
-                        }}
+                        onClick={() => nextPage()}
                         className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
                         Next
